@@ -1,0 +1,6 @@
+{
+  "name": "Cloudflare & cPanel Fast Provisioner",
+  "description": "Automated domain onboarding for Cloudflare and cPanel with 1-click DNS records, Origin SSL generation, and client account support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
