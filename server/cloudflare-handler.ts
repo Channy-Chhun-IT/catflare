@@ -1,4 +1,19 @@
 import type { IncomingMessage, ServerResponse } from 'http';
+import fs from 'fs';
+import path from 'path';
+
+let persistentLogo: string | null = null;
+const LOGO_CACHE_PATH = path.resolve(process.cwd(), 'server', 'saved-logo.json');
+
+try {
+  if (fs.existsSync(LOGO_CACHE_PATH)) {
+    const raw = fs.readFileSync(LOGO_CACHE_PATH, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.logo === 'string') {
+      persistentLogo = parsed.logo;
+    }
+  }
+} catch (_) {}
 
 interface CloudflareAuth {
   authType?: 'token' | 'global_key';
@@ -130,6 +145,28 @@ export async function handleCloudflareRequest(req: IncomingMessage, res: ServerR
   }
 
   try {
+    // 0. LOGO PERSISTENCE ENDPOINT (Read / Cache current logo, no upload UI)
+    if (url === '/api/cloudflare/logo') {
+      if (req.method === 'GET') {
+        sendJsonResponse(res, 200, { success: true, logo: persistentLogo });
+        return true;
+      }
+      if (req.method === 'POST') {
+        const body = await readRequestBody(req);
+        try {
+          const { logo } = JSON.parse(body || '{}');
+          if (logo && typeof logo === 'string') {
+            persistentLogo = logo;
+            try {
+              fs.writeFileSync(LOGO_CACHE_PATH, JSON.stringify({ logo }), 'utf-8');
+            } catch (_) {}
+          }
+        } catch (_) {}
+        sendJsonResponse(res, 200, { success: true });
+        return true;
+      }
+    }
+
     // 1. VERIFY AUTH
     if (url === '/api/cloudflare/verify-auth' && req.method === 'POST') {
       const body = await readRequestBody(req);
