@@ -82,6 +82,9 @@ async function readRequestBody(req: IncomingMessage): Promise<string> {
 function sendJsonResponse(res: ServerResponse, statusCode: number, data: unknown) {
   res.statusCode = statusCode;
   res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.end(JSON.stringify(data));
 }
 
@@ -140,13 +143,23 @@ function generateDemoResult(payload: ProvisionPayload) {
 
 export async function handleCloudflareRequest(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const url = req.url || '';
-  if (!url.startsWith('/api/cloudflare')) {
+  const pathname = url.split('?')[0];
+  if (!pathname.startsWith('/api/cloudflare')) {
     return false;
+  }
+
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 204;
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.end();
+    return true;
   }
 
   try {
     // 0. LOGO PERSISTENCE ENDPOINT (Read / Cache current logo, no upload UI)
-    if (url === '/api/cloudflare/logo') {
+    if (pathname === '/api/cloudflare/logo') {
       if (req.method === 'GET') {
         sendJsonResponse(res, 200, { success: true, logo: persistentLogo });
         return true;
@@ -168,7 +181,7 @@ export async function handleCloudflareRequest(req: IncomingMessage, res: ServerR
     }
 
     // 1. VERIFY AUTH
-    if (url === '/api/cloudflare/verify-auth' && req.method === 'POST') {
+    if (pathname === '/api/cloudflare/verify-auth' && req.method === 'POST') {
       const body = await readRequestBody(req);
       const { auth, isDemo } = JSON.parse(body || '{}');
 
@@ -251,7 +264,7 @@ export async function handleCloudflareRequest(req: IncomingMessage, res: ServerR
     }
 
     // 2. DNS LOOKUP / VERIFY STATUS
-    if (url === '/api/cloudflare/dns-check' && req.method === 'POST') {
+    if (pathname === '/api/cloudflare/dns-check' && req.method === 'POST') {
       const body = await readRequestBody(req);
       const { domain } = JSON.parse(body || '{}');
 
@@ -302,7 +315,7 @@ export async function handleCloudflareRequest(req: IncomingMessage, res: ServerR
     }
 
     // 3. FULL PROVISIONING ENDPOINT
-    if (url === '/api/cloudflare/provision' && req.method === 'POST') {
+    if (pathname === '/api/cloudflare/provision' && req.method === 'POST') {
       const body = await readRequestBody(req);
       const payload = JSON.parse(body || '{}') as ProvisionPayload;
 

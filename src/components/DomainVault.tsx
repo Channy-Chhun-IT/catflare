@@ -29,6 +29,7 @@ export const DomainVault: React.FC<DomainVaultProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -45,11 +46,10 @@ export const DomainVault: React.FC<DomainVaultProps> = ({
     );
   });
 
-  const handleDelete = (id: string, domain: string) => {
-    if (confirm(`Remove ${domain} from the local Domain Vault?`)) {
-      removeDomainFromVault(id);
-      onRefresh();
-    }
+  const handleDelete = (id: string) => {
+    removeDomainFromVault(id);
+    setConfirmDeleteId(null);
+    onRefresh();
   };
 
   const handleExportJson = () => {
@@ -201,13 +201,30 @@ export const DomainVault: React.FC<DomainVaultProps> = ({
                           <Globe className="w-3.5 h-3.5" />
                         </button>
 
-                        <button
-                          onClick={() => handleDelete(dom.id, dom.domain)}
-                          title="Delete domain record"
-                          className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-zinc-800 rounded transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {confirmDeleteId === dom.id ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleDelete(dom.id)}
+                              className="px-2 py-0.5 text-[10px] font-semibold bg-rose-600 hover:bg-rose-500 text-white rounded transition-colors"
+                            >
+                              Delete?
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="px-1.5 py-0.5 text-[10px] text-zinc-400 hover:text-zinc-200 bg-zinc-800 rounded transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteId(dom.id)}
+                            title="Delete domain record"
+                            className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-zinc-800 rounded transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
